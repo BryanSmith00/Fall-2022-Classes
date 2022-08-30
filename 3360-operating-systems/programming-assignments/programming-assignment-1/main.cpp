@@ -2,11 +2,13 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <pthread.h>
+//#include <pthread.h>
 #include <cmath>
 using namespace std;
 
-string shannon(double, double);
+// Pass the probability to the function by reference so that the code can be stored
+
+string shannon(string&, double);
 
 int main() {
 
@@ -49,28 +51,28 @@ int main() {
 
     for (int i = 0; i < probabilities.size(); i++)
     {
-        cout << "Symbol " << symbols.at(i) << ", Code: " << shannon(stod(probabilities.at(i)), cdf.at(i)) << endl;
+        cout << "Symbol " << symbols.at(i) << ", Code: " << shannon(probabilities.at(i), cdf.at(i)) << endl;
     }
     
     return 0;
 }
 
-string shannon(double prob, double cdf) {
+string shannon(string& prob, double cdf) {
 
     string binary = "";
-    int length = ceil(log2( 1 / prob)) + 1;
+    int length = ceil(log2( 1 / stod(prob))) + 1;
 
     while (length != 0) {
         length--;
 
         cdf *= 2;
         
-        int fract_bit = cdf;
-        if (fract_bit == 1) {
-        cdf -= fract_bit;
-        binary.push_back(1 + '0');
+        int fraction = cdf;
+        if (fraction == 1) {
+            cdf -= fraction;
+            binary.push_back(1 + '0');
         } else
-        binary.push_back(0 + '0');
+            binary.push_back(0 + '0');
     }
     
     return binary;
