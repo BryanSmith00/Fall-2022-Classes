@@ -1,4 +1,4 @@
-# 4353 Software Design Week 2 Videos Part 1 Designing Software
+# 4353 Software Design Week 01 Videos Part 1 Designing Software
 
 Designs should be easy to change, easy to understand, easy to maintain, cheaper in cost<br>
 

@@ -1,4 +1,4 @@
-# 4353 Software Design Week 2 Videos Part 2 Strategic Design vs. Tactical Design
+# 4353 Software Design Week 01 Videos Part 2 Strategic Design vs. Tactical Design
 
 Creating a big upfront design is a bad idea: becomes irrelevant fast (waterfall)
 
