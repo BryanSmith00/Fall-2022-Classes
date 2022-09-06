@@ -2,15 +2,18 @@
 #include <iostream>
 #include <string>
 #include <vector>
-//#include <pthread.h>
+#include <pthread.h>
 #include <cmath>
 using namespace std;
 
-// Pass the probability to the function by reference so that the code can be stored
+struct arg_struct {
+    string prob;
+    double cdf;
+};
 
-string shannon(string&, double);
+void* shannon(void* arguments);
 
-int main() {
+int main(int argc, char* argv[]) {
 
     char tempChar;
     string prob;
@@ -49,31 +52,41 @@ int main() {
         cdf.push_back(tempCdf);
     }
 
+    //Thread time
     for (int i = 0; i < probabilities.size(); i++)
     {
-        cout << "Symbol " << symbols.at(i) << ", Code: " << shannon(probabilities.at(i), cdf.at(i)) << endl;
+        struct arg_struct args;
+        args.prob = probabilities.at(i);
+        args.cdf = cdf.at(i);
+
+        pthread_t id;
+        pthread_create(&id, NULL, shannon, (void *) &args);
+        pthread_join(id, NULL);
     }
     
     return 0;
 }
 
-string shannon(string& prob, double cdf) {
+void* shannon(void* arguments) {
 
     string binary = "";
-    int length = ceil(log2( 1 / stod(prob))) + 1;
+    struct arg_struct* args = (arg_struct*)arguments;
+
+    int length = ceil(log2( 1 / stod(args->prob))) + 1;
 
     while (length != 0) {
         length--;
 
-        cdf *= 2;
+        args->cdf *= 2;
         
-        int fraction = cdf;
+        int fraction = args->cdf;
         if (fraction == 1) {
-            cdf -= fraction;
-            binary.push_back(1 + '0');
-        } else
-            binary.push_back(0 + '0');
+            args->cdf -= fraction;
+            binary += '1';
+        } else {
+            binary += '0';
+        }
     }
-    
-    return binary;
+    cout << binary << endl;
+    //prob = binary;
 }
