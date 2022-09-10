@@ -4,10 +4,11 @@
 #include <vector>
 #include <pthread.h>
 #include <cmath>
+#include <map>
 using namespace std;
 
 struct arg_struct {
-    string prob;
+    string *prob;
     double cdf;
 };
 
@@ -15,54 +16,69 @@ void* shannon(void* arguments);
 
 int main(int argc, char* argv[]) {
 
-    char tempChar;
     string prob;
-    vector<char> symbols{};
+    string symb;
+    vector<string> symbols{};
     vector<string> probabilities{};
     vector<double> cdf{};
 
-    // Reads in the first line of symbols
-    cin.get(tempChar);
-    while(tempChar != '\n') {
-        symbols.push_back(tempChar);
-        cin.get(tempChar);
-        if(tempChar == ' ')
-            cin.get(tempChar);
-    }
-
-    // Reads in the second line of probabilities
+    /* 
+      Reads in the two lines of input and separates them
+      The symbols are stored into a string vector called symbols
+      The probabilities are stored in a string vector called probabilities
+    */
+    getline(cin, symb);
     getline(cin, prob);
-    int i = 0;
-    while ((i = prob.find(' ')) != string::npos) {
+    int i, j = 0;
+    while (((i = prob.find(' ')) != string::npos) && (j = symb.find(' ') != string::npos)) {
         probabilities.push_back(prob.substr(0, i));
+        symbols.push_back(symb.substr(0, j));
         prob = prob.substr(i + 1, string::npos);
+        symb = symb.substr(j + 1, string::npos);
     }
-    if(i == string::npos)
+    if(i == string::npos) {
         probabilities.push_back(prob);
+        symbols.push_back(symb);
+    }
 
-    // Calculate the CDF of the probabilties
+    /*
+    Pre-calculates the modified CDF of the probabilities using stod() 
+    and stores them in a double vector
+    */
     for (int i = 0; i < probabilities.size(); i++)
     {
-        double tempCdf = 0.0f;
+        double tempCdf = 0.0;
         for (int j = 0; j < i; j++)
-        {
             tempCdf += stod(probabilities.at(j));
-        }
+
         tempCdf += stod(probabilities.at(i)) / 2;
         cdf.push_back(tempCdf);
     }
 
-    //Thread time
+    /*
+    Creates a dynamic array of structs for passing the data into the encoder
+    each index holds a pointer to the probability and the cdf value
+    */
+    arg_struct* args = new arg_struct[probabilities.size()];
     for (int i = 0; i < probabilities.size(); i++)
     {
-        struct arg_struct args;
-        args.prob = probabilities.at(i);
-        args.cdf = cdf.at(i);
-
-        pthread_t id;
-        pthread_create(&id, NULL, shannon, (void *) &args);
-        pthread_join(id, NULL);
+        args[i].prob = &probabilities.at(i);
+        args[i].cdf = cdf.at(i);
     }
+    
+    // Creates all of the threads and passes in the data
+    pthread_t tid[probabilities.size()];    
+    for (int i = 0; i < probabilities.size(); i++)
+        pthread_create(&tid[i], NULL, shannon, (void *) &args[i]);
+
+    // Threads are all rejoined
+    for (int i = 0; i < probabilities.size(); i++)
+        pthread_join(tid[i], NULL);
+    
+    // Output according to assignment formatting
+    cout << "SHANNON-FANO-ELIAS Codes:" << endl << endl;
+    for (int i = 0; i < probabilities.size(); i++)
+        cout << "Symbol " << symbols.at(i) << ", Code: " << probabilities.at(i) << endl;
     
     return 0;
 }
@@ -72,7 +88,9 @@ void* shannon(void* arguments) {
     string binary = "";
     struct arg_struct* args = (arg_struct*)arguments;
 
-    int length = ceil(log2( 1 / stod(args->prob))) + 1;
+    // Shannon encoding length
+    int length = ceil(log2( 1 / stod(*args->prob))) + 1;
+    //cout << "thread for prob: " << *args->prob << "length is " << length << endl;
 
     while (length != 0) {
         length--;
@@ -87,6 +105,6 @@ void* shannon(void* arguments) {
             binary += '0';
         }
     }
-    cout << binary << endl;
-    //prob = binary;
+    *args->prob = binary;
+    return NULL;
 }
