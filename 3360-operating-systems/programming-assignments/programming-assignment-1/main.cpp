@@ -83,21 +83,26 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+/* 
+Encoding function takes in a pointer to the probability and the cdf value for a given symbol and saves the 
+shannon code into the overwrites the probability value so it can be accessed by the main process
+*/
 void* shannon(void* arguments) {
 
     string binary = "";
+    // The arguments come in as a void type so we must cast them back to the struct
     struct arg_struct* args = (arg_struct*)arguments;
 
-    // Shannon encoding length
+    // Shannon encoding length formula
     int length = ceil(log2( 1 / stod(*args->prob))) + 1;
     //cout << "thread for prob: " << *args->prob << "length is " << length << endl;
 
+    // Iterates through the cdf and if the fractional part is a 1 it adds a 1 to the code otherwise 0
     while (length != 0) {
         length--;
-
         args->cdf *= 2;
-        
         int fraction = args->cdf;
+
         if (fraction == 1) {
             args->cdf -= fraction;
             binary += '1';
