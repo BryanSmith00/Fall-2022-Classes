@@ -24,8 +24,10 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr, cli_addr;
     int n;
 
+    // fireman function deals with zombie threads
     signal(SIGCHLD, fireman);
 
+    // if no port number is provided the program crashes
     if (argc < 2)
     {
         std::cerr << "ERROR, no port provided\n";
@@ -35,21 +37,25 @@ int main(int argc, char *argv[])
     // creates a new blank socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+    // if the blank socket could not be created the program crashes
     if (sockfd < 0)
     {
         std::cerr << "ERROR opening socket";
         exit(1);
     }
 
+    // sets all the bytes of the server address to 0
     bzero((char *)&serv_addr, sizeof(serv_addr));
 
+    // port number is set to the command argument
     portno = atoi(argv[1]);
 
+    // setup for serv_addr struct, sets the port number to portno
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
 
-    // binds the socket to the port
+    // binds the empty socket to the port given by the argument (crashes if binding fails)
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         std::cerr << "ERROR on binding";
