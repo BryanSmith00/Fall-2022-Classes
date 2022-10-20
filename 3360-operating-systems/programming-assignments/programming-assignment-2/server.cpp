@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <wait.h>
+#include <math.h>
 
 void fireman(int)
 {
@@ -77,20 +78,56 @@ int main(int argc, char *argv[])
                 std::cerr << "ERROR on accept";
                 exit(1);
             }
+
             bzero(buffer, 256);
             n = read(newsockfd, buffer, 255);
+
             if (n < 0)
             {
                 std::cerr << "ERROR reading from socket";
                 exit(1);
             }
-            std::cout << "Here is the message: " << buffer << std::endl;
-            n = write(newsockfd, "I got your message", 18);
+
+            // converts the read buffer back into the double values for prob and cdf
+            std::string buff = buffer;
+            double prob = stod(buff.substr(0, buff.find(" ")));
+            double cdf = stod(buff.substr(buff.find(" "), std::string::npos));
+
+            // ----------------------------------------------------------------------------------------------
+            // Shannon encoding
+            // ----------------------------------------------------------------------------------------------
+            std::string binary = "";
+
+            // Shannon encoding length formula
+            int length = ceil(log2( 1 / prob)) + 1;
+
+            // Iterates through the cdf and if the fractional part is a 1 it adds a 1 to the code otherwise 0
+            while (length != 0) {
+                length--;
+                cdf *= 2;
+                int fraction = cdf;
+
+                if (fraction == 1) {
+                    cdf -= fraction;
+                    binary += '1';
+                } else {
+                    binary += '0';
+                }
+            }
+
+            // converts the code into a character array in order to send it to the socket
+            char char_array[binary.length()];
+            strcpy(char_array, binary.c_str());
+            
+            // writes the code to the socket
+            n = write(newsockfd, &char_array, binary.length());
+
             if (n < 0)
             {
                 std::cerr << "ERROR writing to socket";
                 exit(1);
             }
+
             close(newsockfd);
             _exit(0);
         }
