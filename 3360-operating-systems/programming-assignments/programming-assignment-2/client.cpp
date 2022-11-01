@@ -25,7 +25,7 @@ void* shannon(void* arguments);
 int main(int argc, char *argv[])
 {
     int portno;
-    std::map<char, int> symbols; 
+    std::map<char, int> symbols;
     std::string fileName;
     std::string message;
     std::vector<double> probabilities{};
