@@ -1,4 +1,3 @@
-// Write your program here
 #include <iostream>
 #include <string>
 #include <vector>
