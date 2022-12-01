@@ -19,11 +19,17 @@ void* shannon(void* arguments);
 
 int main(int argc, char* argv[]) {
 
+    // semaphore for copying the argument info to the child thread
     static pthread_mutex_t semB;
+
+    // semaphore for synchronizing the printing
     static pthread_mutex_t semP;
+
+    // initializes both of the semaphores to NULL
     pthread_mutex_init(&semB, NULL);
     pthread_mutex_init(&semP, NULL);
 
+    // condition variable used with semP for syncing print
     static pthread_cond_t print = PTHREAD_COND_INITIALIZER;
 
     std::string message;
@@ -40,17 +46,18 @@ int main(int argc, char* argv[]) {
     // Adds each of the symbols to an unordered_map with its number of occurances
     for (int i = 0; i < message.length(); i++) { 
         symbols[message[i]]++; 
-        characters.push_back(message[i]);
     }
 
     // calculates the probability for each symbol and stores it in a vector
-    for (auto const& [key, val] : symbols)
+    for (auto const& [key, val] : symbols) {
         probabilities.push_back((double)val / message.length());
+        characters.push_back(key);
+    }
 
-    /*
-    Creates a dynamic array of structs for passing the data into the encoder
-    each index holds a pointer to the probability and the cdf value
-    */
+    //prints the first line of output
+    std::cout << "SHANNON-FANO-ELIAS Codes:" << std::endl << std::endl;
+
+    // creates the argument struct and sets the needed values
     arg_struct args;
     args.prob = &probabilities;
     args.semB = &semB;
@@ -64,9 +71,11 @@ int main(int argc, char* argv[]) {
         //critical section start
         pthread_mutex_lock(&semB);  
 
+        // dynamically assigns the thread number and character to the struct
         args.thread_num = &i;
         args.character = &characters.at(i);
 
+        // creates the threads and passes the argument struct in
         pthread_create(&tid[i], NULL, shannon, &args); 
     }
 
@@ -74,15 +83,6 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < probabilities.size(); i++)
         pthread_join(tid[i], NULL);
 
-    /*
-    // Output according to assignment formatting
-    int i = 0;
-    std::cout << "SHANNON-FANO-ELIAS Codes:" << std::endl << std::endl;
-    for (auto const& [key, val] : symbols) {
-        std::cout << "Symbol " << key << ", Code: " << *args[i].code << std::endl;
-        i++;
-    }
-    */
     return 0;
 }
 
@@ -99,18 +99,19 @@ void* shannon(void* arguments) {
 
     int t_num = *args->thread_num - 1;
     char symb = *args->character;
+    std::vector<double> prob = *args->prob;
 
     // end the critical section within the child thread after copying the thread number into local variable in child thread
     pthread_mutex_unlock(args->semB);
 
     // calculates the modified cdf value for each symbol and adds it to a vector
-    for (int i = 0; i < (*args->prob).size(); i++)
+    for (int i = 0; i < prob.size(); i++)
     {
         double tempCdf = 0.0;
         for (int j = 0; j < i; j++)
-            tempCdf += (*args->prob).at(j);
+            tempCdf += prob.at(j);
 
-        tempCdf += (*args->prob).at(i) / 2;
+        tempCdf += prob.at(i) / 2;
         cdf.push_back(tempCdf);
     }
 
@@ -120,7 +121,7 @@ void* shannon(void* arguments) {
     std::string binary = "";
 
     // Shannon encoding length formula
-    int length = ceil(log2( 1 / (*args->prob).at(t_num))) + 1;
+    int length = ceil(log2( 1 / prob.at(t_num)) + 1);
 
     // Iterates through the cdf and if the fractional part is a 1 it adds a 1 to the code otherwise 0
     while (length != 0) {
@@ -136,16 +137,24 @@ void* shannon(void* arguments) {
         }
     }
 
-    // synchronized printing
+    // locks the printing semaphore
     pthread_mutex_lock(args->semP);
+
+    // similar to exam 2 waits on condition print until the turn is correct
     while(*args->turn != t_num){
         pthread_cond_wait(args->print, args->semP);
     }
 
+    // once it is a threads turn it prints
     std::cout << "Symbol " << symb << ", " << "Code: " << binary << std::endl;
 
+    // increases the turn by reference
     (*args->turn)++;
+
+    // unlocks the printing semaphore
     pthread_mutex_unlock(args->semP);
+
+    // wakes up the condition variable print
     pthread_cond_broadcast(args->print);
 
     return NULL;
