@@ -68,6 +68,8 @@ int main(int argc, char* argv[]) {
     // Creates all of the threads and passes in the data
     pthread_t tid[probabilities.size()];    
     for (int i = 0; i < probabilities.size(); i++) {
+        // as discussed in lecture creates a critical section over the thread creation to avoid reassigning
+        //  thread number before it is copied by the child
         //critical section start
         pthread_mutex_lock(&semB);  
 
@@ -145,17 +147,24 @@ void* shannon(void* arguments) {
         pthread_cond_wait(args->print, args->semP);
     }
 
+    // unlocks the printing semaphore
+    pthread_mutex_unlock(args->semP);
+
     // once it is a threads turn it prints
-    std::cout << "Symbol " << symb << ", " << "Code: " << binary << std::endl;
+    std::cout << "Symbol " << symb << ", Code: " << binary << std::endl;
+
+    // relocks the printing semaphor before advancing the turn
+    // as stated in lecture to print between critical sections rather than in one
+    pthread_mutex_lock(args->semP);
 
     // increases the turn by reference
     (*args->turn)++;
 
-    // unlocks the printing semaphore
-    pthread_mutex_unlock(args->semP);
-
     // wakes up the condition variable print
     pthread_cond_broadcast(args->print);
+
+    // final critical section unlock
+    pthread_mutex_unlock(args->semP);
 
     return NULL;
 }
